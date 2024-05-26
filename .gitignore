@@ -1,0 +1,6 @@
+﻿main/.vscode
+main/assets
+main/CMakeLists.txt
+unit
+main/.clang-format
+main/.gitignore
