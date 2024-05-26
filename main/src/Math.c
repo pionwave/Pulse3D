@@ -1,5 +1,6 @@
 
 // Written by Lynton "Pionwave" Schneider, 2024
+// Thanks to quake for the fast sqrt
 
 #include "Math.h"
 
