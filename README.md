@@ -14,4 +14,4 @@ Brush based maps are ideal as convex volumes make collision detection with a BSP
 map super fast and simple; as anything in front of the split plane is in empty 
 space, and anything behind the split plane is in solid space.
 
-<a href="URL_REDIRECT" target="blank"><img align="center" src="https://github.com/pionwave/Pulse3D/tree/main/images/texturing_big.jpg" height="100" /></a>
+![texturing_big](https://github.com/pionwave/Pulse3D/assets/21047000/bda316a4-44da-4795-aa91-a6b8a1243588)
