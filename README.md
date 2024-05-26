@@ -13,3 +13,5 @@ Next step is to create an external BSP compiler tool, using brush based maps.
 Brush based maps are ideal as convex volumes make collision detection with a BSP
 map super fast and simple; as anything in front of the split plane is in empty 
 space, and anything behind the split plane is in solid space.
+
+<a href="URL_REDIRECT" target="blank"><img align="center" src="https://github.com/pionwave/Pulse3D/tree/main/images/texturing_big.jpg" height="100" /></a>
