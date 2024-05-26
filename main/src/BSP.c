@@ -53,11 +53,8 @@ void aabb_grow(AABB *result, AABB *left, AABB *right) {
 int split_triangle(Triangle input, Vertex plane_point, float nx, float ny, float nz, Triangle *front1, Triangle *front2, Triangle *back1, Triangle *back2) {
 	Vertex vertices[3] = {input.v0, input.v1, input.v2};
 	Vertex front_vertices[4], back_vertices[4];
-	int front_count = 0, back_count = 0;
-
+	int front_count = 0, back_count = 0, coplanar = 0;
 	Vertex coplanar_vertices[4];
-
-	int coplanar = 0;
 
 	for (int i = 0; i < 3; i++) {
 		float distance = (vertices[i].x - plane_point.x) * nx + (vertices[i].y - plane_point.y) * ny + (vertices[i].z - plane_point.z) * nz;
@@ -66,18 +63,14 @@ int split_triangle(Triangle input, Vertex plane_point, float nx, float ny, float
 		} else if (distance < -0.0001f) {
 			back_vertices[back_count++] = vertices[i];
 		} else {
-
-
 			coplanar_vertices[coplanar++];
 		}
 	}
 
 
 	if (front_count == 0 || back_count == 0) {
-
 		return 0;
 	}
-
 
 	if (coplanar == 2) {
 		return 0;
@@ -129,7 +122,10 @@ int split_triangle(Triangle input, Vertex plane_point, float nx, float ny, float
 
 		return 3;
 	} else if (coplanar == 1 && front_count == 1 && back_count == 1) {
-
+		// this is an edge case where a triangle cuts right through the plane with it's central point
+		// on the plane. Currently I don't handle this case as the input data doesn't require it - and
+		// soon BSP's will be loaded automatically after being compiled externally by a more effective
+		// tool written in C++.
 	} else {
 		return 0;
 	}
@@ -174,7 +170,6 @@ void enclose_aabb(AABB *aabb1, const AABB *aabb2) {
 BSPNode *build_bsp_tree(Triangle *triangles, int count) {
 	if (count == 0) return NULL;
 
-
 	int best_split_index = 0;
 	int min_split_count = count * count;
 
@@ -200,8 +195,6 @@ BSPNode *build_bsp_tree(Triangle *triangles, int count) {
 				} else if (side[0] < -0.0001f && side[1] < -0.0001f && side[2] < -0.0001f) {
 					back_count++;
 				} else {
-
-
 					Vertex center = interpolate_vertex(triangles[j].v0, triangles[j].v1, 0.5f);
 					center = interpolate_vertex(center, triangles[j].v2, 0.5f);
 
@@ -297,17 +290,11 @@ BSPNode *build_bsp_tree(Triangle *triangles, int count) {
 	free(back_list);
 
 
-	if (node->back !=
-		NULL) {
-
-
+	if (node->back != NULL) {
 		enclose_aabb(&node->bounding_box, &node->back->bounding_box);
 	}
 
-	if (node->front !=
-		NULL) {
-
-
+	if (node->front != NULL) {
 		enclose_aabb(&node->bounding_box, &node->front->bounding_box);
 	}
 
@@ -316,8 +303,8 @@ BSPNode *build_bsp_tree(Triangle *triangles, int count) {
 
 
 void free_bsp_tree(BSPNode *node) {
-	if (node ==
-		NULL) return;
+	if (node == NULL) return;
+
 	free_bsp_tree(node->front);
 	free_bsp_tree(node->back);
 

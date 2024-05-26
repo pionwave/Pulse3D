@@ -29,11 +29,9 @@ void initialize_z_buffer() {
 }
 
 void free_z_buffer() {
-	if (z_buffer !=
-		NULL) {
+	if (z_buffer != NULL) {
 		free(z_buffer);
-		z_buffer =
-				NULL;
+		z_buffer = NULL;
 	}
 }
 
