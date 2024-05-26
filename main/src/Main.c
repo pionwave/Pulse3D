@@ -874,6 +874,8 @@ int main() {
 	}
 
 	free_bsp_tree(bsp_tree);
+	bmp_free_data(&texture);
+	bmp_free_data(&texture_concrete);
 
 	restore_timer();
 	shutdown_graphics();

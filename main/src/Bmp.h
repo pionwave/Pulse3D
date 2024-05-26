@@ -15,6 +15,6 @@ typedef struct
 int bmp_load(const char *filename, Bitmap *bitmap);
 void bmp_set_palette(char *palette);
 void bmp_draw(Bitmap *bmp, char *buffer, int x, int y, unsigned short screen_width);
-
+void bmp_free_data(Bitmap *bitmap);
 
 #endif

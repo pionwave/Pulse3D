@@ -118,3 +118,12 @@ void bmp_draw(Bitmap *bmp, char *buffer, int x, int y, unsigned short screen_wid
 		screen_offset += screen_width;
 	}
 }
+
+void bmp_free_data(Bitmap *bitmap) {
+	if (bitmap != NULL) {
+		if (bitmap->data != NULL) {
+			free(bitmap->data);
+			bitmap->data = NULL;
+		}
+	}
+}
