@@ -1,5 +1,5 @@
 # Pulse3D
-Oldschool dos 3d rasterization engine. Full 6 degrees of freedom.
+Oldschool DOS 3D rasterization engine, targetted for the DJGPP toolset. Full 6 degrees of freedom.
 
 Currently the engine rasters in mode 13h - 320x200 and 256 colours.
 Uses a back buffer, loading 256 colour BMP's as textures and rendering perspective correct triangles.
