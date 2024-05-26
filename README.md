@@ -6,6 +6,8 @@ Uses a back buffer, loading 256 colour BMP's as textures and rendering perspecti
 
 Z-sort is done via a BSP tree, there is a z-buffer but that isn't used yet - 
 it will be used for sorting objects in the world against the pre-rendered world.
+There is also frustum culling using a frustum cone & spheres built from BSP node 
+AABB's.
 
 Next step is to create an external BSP compiler tool, using brush based maps.
 Brush based maps are ideal as convex volumes make collision detection with a BSP
