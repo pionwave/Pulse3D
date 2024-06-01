@@ -5,6 +5,7 @@
 #define __PULSE_GRAPHICS_H__
 
 #include "bmp.h"
+#include "Texture.h"
 
 typedef struct {
 	int x, y;
@@ -32,7 +33,8 @@ void draw_pixel(int x, int y, unsigned char color);
 void draw_pixel_z_buffer(int x, int y, float z, unsigned char color);
 
 void draw_filled_triangle(ScreenVertex v0, ScreenVertex v1, ScreenVertex v2);
-void draw_textured_triangle(ScreenVertex v0, ScreenVertex v1, ScreenVertex v2, const Bitmap *texture);
+void draw_bmp_triangle(ScreenVertex v0, ScreenVertex v1, ScreenVertex v2, const Bitmap *texture);
+void draw_textured_triangle(ScreenVertex v0, ScreenVertex v1, ScreenVertex v2, const Texture *texture, float lod_level);
 void clip_polygon(ScreenVertex *vertices, int vertex_count, ScreenVertex *output, int *output_count);
 
 void sprite_draw(char *data, int x, int y, unsigned short width, unsigned short height);

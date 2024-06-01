@@ -57,6 +57,7 @@ int bmp_load(const char *filename, Bitmap *bitmap) {
 		return 0;
 	}
 
+
 	BITMAPINFOHEADER bih;
 	fread(&bih, sizeof(BITMAPINFOHEADER), 1, file);
 	if (bih.biBitCount != 8) {
@@ -66,9 +67,21 @@ int bmp_load(const char *filename, Bitmap *bitmap) {
 		return 0;
 	}
 
+	/*
+	printf("Bitmap file bit depth %i\n", bih.biBitCount);
+	printf("Bitmap file width %i\n", bih.biWidth);
+	printf("Bitmap file height %i\n", bih.biHeight);
+	printf("Bitmap image size %i\n", bih.biSizeImage);
+	printf("Bitmap image compression %i\n", bih.biCompression);
+	printf("Bitmap image offset %i\n", bfh.bfOffBits);
+
+	exit(1);
+	*/
+
 	bitmap->width = bih.biWidth;
 	bitmap->height = bih.biHeight;
-	bitmap->data = (char *) malloc(bih.biSizeImage);
+	//bitmap->data = (char *) malloc(bih.biSizeImage);
+	bitmap->data = (char *) malloc(bitmap->width * bitmap->height);
 	if (!bitmap->data) {
 
 		fclose(file);

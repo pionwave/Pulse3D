@@ -19,15 +19,6 @@ int classify_vertex(Vertex v, Vertex plane_point, float nx, float ny, float nz) 
 }
 
 
-static inline float fminf(float x, float y) {
-	return (x < y) ? x : y;
-}
-
-
-static inline float fmaxf(float x, float y) {
-	return (x > y) ? x : y;
-}
-
 void calculate_aabb(Triangle *triangle, AABB *box) {
 	box->min.x = fminf(triangle->v0.x, fminf(triangle->v1.x, triangle->v2.x));
 	box->min.y = fminf(triangle->v0.y, fminf(triangle->v1.y, triangle->v2.y));

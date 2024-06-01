@@ -17,7 +17,7 @@
 #include "Keyboard.h"
 #include "Timer.h"
 #include "BMP.h"
-
+#include "Texture.h"
 
 unsigned walls[20][20] = {
 		{8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2},
@@ -56,8 +56,9 @@ Triangle ground_triangles[2];
 Triangle sky_triangles[2];
 Triangle wall_triangles[2048];
 int num_wall_triangles;
-Bitmap texture;
-Bitmap texture_concrete;
+
+Texture *texture_wall;
+Texture *texture_concrete;
 
 unsigned long last_tick = 0;
 float frame_time = 0.0f;
@@ -546,7 +547,7 @@ void draw_clipped_filled_triangle(Triangle triangle) {
 	}
 }
 
-void draw_clipped_textured_triangle(Triangle triangle, Bitmap *texture) {
+void draw_clipped_textured_triangle(Triangle triangle, Texture *texture) {
 	Triangle clipped_triangles[2];
 	int clipped_count = clip_triangle_to_near_plane(triangle, &clipped_triangles[0], &clipped_triangles[1]);
 
@@ -563,7 +564,7 @@ void draw_clipped_textured_triangle(Triangle triangle, Bitmap *texture) {
 
 
 		for (int j = 2; j < clipped_vertex_count; j++) {
-			draw_textured_triangle(clipped_vertices[0], clipped_vertices[j - 1], clipped_vertices[j], texture);
+			draw_textured_triangle(clipped_vertices[0], clipped_vertices[j - 1], clipped_vertices[j], texture, 0);
 		}
 	}
 }
@@ -745,7 +746,7 @@ void render_bsp_tree(BSPNode *node, float px, float py, float pz, ConeFrustum *f
 				transform_vertex(node->triangle.v0, camera, camera_yaw),
 				transform_vertex(node->triangle.v1, camera, camera_yaw),
 				transform_vertex(node->triangle.v2, camera, camera_yaw)};
-		draw_clipped_textured_triangle(transformed_triangle, &texture);
+		draw_clipped_textured_triangle(transformed_triangle, texture_wall);
 
 		render_bsp_tree(node->front, px, py, pz, frustum);
 
@@ -757,7 +758,7 @@ void render_bsp_tree(BSPNode *node, float px, float py, float pz, ConeFrustum *f
 				transform_vertex(node->triangle.v0, camera, camera_yaw),
 				transform_vertex(node->triangle.v1, camera, camera_yaw),
 				transform_vertex(node->triangle.v2, camera, camera_yaw)};
-		draw_clipped_textured_triangle(transformed_triangle, &texture);
+		draw_clipped_textured_triangle(transformed_triangle, texture_wall);
 
 		render_bsp_tree(node->back, px, py, pz, frustum);
 	}
@@ -768,27 +769,29 @@ int main() {
 
 	BSPNode *bsp_tree = build_bsp_tree(wall_triangles, num_wall_triangles);
 
-	if (!bmp_load("data/textures/panel.BMP", &texture)) {
+	Bitmap bmp_wall;
+	Bitmap bmp_concrete;
+
+	if (!bmp_load("data/textures/panel.BMP", &bmp_wall)) {
 		printf("Failed to load bitmap: %s\n", "data/textures/panel.BMP");
 		exit(1);
 	}
 
-	if (!bmp_load("data/textures/concrete.BMP", &texture_concrete)) {
+	if (!bmp_load("data/textures/concrete.BMP", &bmp_concrete)) {
 		printf("Failed to load bitmap: %s\n", "data/textures/concrete.BMP");
 		exit(1);
 	}
-
 
 	if (__djgpp_nearptr_enable() == 0) {
 		printf("Could get access to first 640K of memory.\n");
 		exit(-1);
 	}
 
+	texture_wall = create_texture_from_bmp(&bmp_wall);
+	texture_concrete = create_texture_from_bmp(&bmp_concrete);
+
 	initialize_timer();
-
 	init_graphics();
-
-
 	init_keyboard();
 
 
@@ -813,7 +816,7 @@ int main() {
 
 	create_cone_frustum(&frustum, camera, forward_vec, 60.0f, 1000.0f, 5.0f);
 
-	bmp_set_palette(texture.palette);
+	bmp_set_palette(bmp_wall.palette);
 
 	while (quit == 0) {
 		float fx = sin(camera_yaw);
@@ -855,7 +858,7 @@ int main() {
 					transform_vertex(ground_triangles[i].v0, camera, camera_yaw),
 					transform_vertex(ground_triangles[i].v1, camera, camera_yaw),
 					transform_vertex(ground_triangles[i].v2, camera, camera_yaw)};
-			draw_clipped_textured_triangle(transformed_triangle, &texture_concrete);
+			draw_clipped_textured_triangle(transformed_triangle, texture_concrete);
 		}
 
 
@@ -869,13 +872,14 @@ int main() {
 
 		render_bsp_tree(bsp_tree, camera.x, camera.y, camera.z, &frustum);
 
-
 		flip_doublebuffer();
 	}
 
 	free_bsp_tree(bsp_tree);
-	bmp_free_data(&texture);
-	bmp_free_data(&texture_concrete);
+	bmp_free_data(&bmp_wall);
+	bmp_free_data(&bmp_concrete);
+	free_texture(texture_concrete);
+	free_texture(texture_wall);
 
 	restore_timer();
 	shutdown_graphics();

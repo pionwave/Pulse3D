@@ -9,6 +9,8 @@
 #include <dos.h>
 #include <math.h>
 #include <sys/nearptr.h>
+#include <stdint.h>
+#include "Math.h"
 
 #include "Graphics.h"
 
@@ -271,17 +273,38 @@ void draw_filled_triangle(ScreenVertex v0, ScreenVertex v1, ScreenVertex v2) {
 	}
 }
 
+float roundf(float x) {
+	union {
+		float f;
+		int32_t i;
+	} u = {x};
+	int32_t e = u.i >> 23 & 0xFF;// extract exponent
+	int32_t m;
+
+	if (e >= 150) return x;// No rounding necessary if the number is too large
+
+	if (e < 127) return x >= 0.5f ? 1.0f : (x < -0.5f ? -1.0f : 0.0f);// round to nearest integer if x is small
+
+	m = 1 << (150 - e);// mask for rounding
+
+	u.i += m >> 1;
+	u.i &= ~m;
+	return u.f;
+}
+
 unsigned char get_texture_color(const Bitmap *texture, float u, float v) {
 
 	u = u - floor(u);
 	v = v - floor(v);
 
-	int tex_x = (int) (u * (texture->width - 1));
-	int tex_y = (int) (v * (texture->height - 1));
+	// roundf is more accurate for nearest filtering than simply
+	// truncating
+	int tex_x = (int) roundf(u * (texture->width - 1));
+	int tex_y = (int) roundf(v * (texture->height - 1));
 	return texture->data[tex_y * texture->width + tex_x];
 }
 
-void draw_textured_triangle(ScreenVertex v0, ScreenVertex v1, ScreenVertex v2, const Bitmap *texture) {
+void draw_bmp_triangle(ScreenVertex v0, ScreenVertex v1, ScreenVertex v2, const Bitmap *texture) {
 
 	if (v1.y < v0.y) {
 		ScreenVertex temp = v0;
@@ -365,6 +388,156 @@ void draw_textured_triangle(ScreenVertex v0, ScreenVertex v1, ScreenVertex v2, c
 			float final_v = v_over_w * one_over_w;
 
 			unsigned char texture_color = get_texture_color(texture, final_u, final_v);
+
+
+			draw_pixel(j, scanline_y, texture_color);
+		}
+	}
+}
+
+void compute_gradients(const ScreenVertex v0, const ScreenVertex v1, const ScreenVertex v2, float *dudx, float *dudy, float *dvdx, float *dvdy) {
+	float x0 = v0.x, y0 = v0.y, u0 = v0.u, v0_t = v0.v;
+	float x1 = v1.x, y1 = v1.y, u1 = v1.u, v1_t = v1.v;
+	float x2 = v2.x, y2 = v2.y, u2 = v2.u, v2_t = v2.v;
+
+	float dx1 = x1 - x0;
+	float dy1 = y1 - y0;
+	float du1 = u1 - u0;
+	float dv1 = v1_t - v0_t;
+
+	float dx2 = x2 - x0;
+	float dy2 = y2 - y0;
+	float du2 = u2 - u0;
+	float dv2 = v2_t - v0_t;
+
+	float inv_denom = 1.0f / (dx1 * dy2 - dx2 * dy1);
+
+	*dudx = (du1 * dy2 - du2 * dy1) * inv_denom;
+	*dudy = (du2 * dx1 - du1 * dx2) * inv_denom;
+	*dvdx = (dv1 * dy2 - dv2 * dy1) * inv_denom;
+	*dvdy = (dv2 * dx1 - dv1 * dx2) * inv_denom;
+}
+
+float calculate_lod(float dudx, float dudy, float dvdx, float dvdy, int num_levels) {
+	// Compute the maximum gradient magnitude
+	float max_u = fmax(fabs(dudx), fabs(dudy));
+	float max_v = fmax(fabs(dvdx), fabs(dvdy));
+	float rho = fmax(max_u, max_v);
+
+	// Calculate the LOD level
+	float lod = fast_log2(rho);
+
+	// Clamp LOD to the range [0, num_levels - 1]
+	lod = fmax(0, fmin(num_levels - 1, lod));
+
+	return lod;
+}
+
+unsigned char get_texture_color_mipmap(const Texture *mipmaps, float u, float v, float lod) {
+	// Wrap u and v to the range [0, 1)
+	u = u - floor(u);
+	v = v - floor(v);
+
+	// Determine the mipmap level based on LOD
+	int level = (int) fmin(mipmaps->num_lods - 1, fmax(0, lod));
+
+	const Image *texture = &mipmaps->mips[level];
+
+	// Convert to texel indices by rounding to the nearest integer
+	int tex_x = (int) roundf(u * (texture->width - 1));
+	int tex_y = (int) roundf(v * (texture->height - 1));
+
+	return texture->data[tex_y * texture->width + tex_x];
+}
+
+void draw_textured_triangle(ScreenVertex v0, ScreenVertex v1, ScreenVertex v2, const Texture *texture, float lod_level) {
+
+	if (v1.y < v0.y) {
+		ScreenVertex temp = v0;
+		v0 = v1;
+		v1 = temp;
+	}
+	if (v2.y < v0.y) {
+		ScreenVertex temp = v0;
+		v0 = v2;
+		v2 = temp;
+	}
+	if (v2.y < v1.y) {
+		ScreenVertex temp = v1;
+		v1 = v2;
+		v2 = temp;
+	}
+
+	int total_height = v2.y - v0.y;
+
+
+	if (total_height == 0) {
+		return;
+	}
+
+	float v0_inv_w = v0.w;
+	float v1_inv_w = v1.w;
+	float v2_inv_w = v2.w;
+
+
+	float v0_u_over_w = v0.u;
+	float v0_v_over_w = v0.v;
+
+	float v1_u_over_w = v1.u;
+	float v1_v_over_w = v1.v;
+
+	float v2_u_over_w = v2.u;
+	float v2_v_over_w = v2.v;
+
+	float dudx, dudy, dvdx, dvdy;
+
+	compute_gradients(v0, v1, v2, &dudx, &dudy, &dvdx, &dvdy);
+	float lod = calculate_lod(dudx, dudy, dvdx, dvdy, texture->num_lods);
+
+	for (int i = 0; i <= total_height; i++) {
+		int second_half = i > v1.y - v0.y || v1.y == v0.y;
+		int segment_height = second_half ? v2.y - v1.y : v1.y - v0.y;
+		float alpha = (float) i / total_height;
+		float beta = (float) (i - (second_half ? v1.y - v0.y : 0)) / segment_height;
+
+		int scanline_y = i + v0.y;
+
+		ScreenVertex A = {
+				v0.x + (v2.x - v0.x) * alpha,
+				scanline_y,
+				0.0f,
+				v0_inv_w + (v2_inv_w - v0_inv_w) * alpha,
+				v0_u_over_w + (v2_u_over_w - v0_u_over_w) * alpha,
+				v0_v_over_w + (v2_v_over_w - v0_v_over_w) * alpha};
+
+		ScreenVertex B = second_half
+								 ? (ScreenVertex){
+										   v1.x + (v2.x - v1.x) * beta,
+										   scanline_y,
+										   0.0f,
+										   v1_inv_w + (v2_inv_w - v1_inv_w) * beta,
+										   v1_u_over_w + (v2_u_over_w - v1_u_over_w) * beta,
+										   v1_v_over_w + (v2_v_over_w - v1_v_over_w) * beta}
+								 : (ScreenVertex){v0.x + (v1.x - v0.x) * beta, scanline_y, 0.0f, v0_inv_w + (v1_inv_w - v0_inv_w) * beta, v0_u_over_w + (v1_u_over_w - v0_u_over_w) * beta, v0_v_over_w + (v1_v_over_w - v0_v_over_w) * beta};
+
+		if (A.x > B.x) {
+			ScreenVertex temp = A;
+			A = B;
+			B = temp;
+		}
+
+		for (int j = A.x; j <= B.x; j++) {
+			float phi = B.x == A.x ? 1.0f : (float) (j - A.x) / (B.x - A.x);
+
+			float one_over_w = 1.0f / (A.w + phi * (B.w - A.w));
+			float u_over_w = A.u + phi * (B.u - A.u);
+			float v_over_w = A.v + phi * (B.v - A.v);
+
+
+			float final_u = u_over_w * one_over_w;
+			float final_v = v_over_w * one_over_w;
+
+			unsigned char texture_color = get_texture_color_mipmap(texture, final_u, final_v, lod);
 
 
 			draw_pixel(j, scanline_y, texture_color);
