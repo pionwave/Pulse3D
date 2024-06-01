@@ -1,5 +1,5 @@
 # Pulse3D
-Oldschool dos 3d rasterization engine. Full 6 degrees of freedom.
+Oldschool DOS 3D rasterization engine, targetted for the DJGPP toolset. Full 6 degrees of freedom.
 
 Currently the engine rasters in mode 13h - 320x200 and 256 colours.
 Uses a back buffer, loading 256 colour BMP's as textures and rendering perspective correct triangles.
@@ -14,4 +14,4 @@ Brush based maps are ideal as convex volumes make collision detection with a BSP
 map super fast and simple; as anything in front of the split plane is in empty 
 space, and anything behind the split plane is in solid space.
 
-<a href="URL_REDIRECT" target="blank"><img align="center" src="https://github.com/pionwave/Pulse3D/tree/main/images/texturing_big.jpg" height="100" /></a>
+![texturing_big](https://github.com/pionwave/Pulse3D/assets/21047000/bda316a4-44da-4795-aa91-a6b8a1243588)
